@@ -29,13 +29,12 @@ import { HttpExceptionFilter } from './common/http-exception.filter';
 
         TypeOrmModule.forRoot({
             type: 'mongodb',
-            host: process.env.DB_HOST || 'localhost',
-            port: parseInt(process.env.DB_PORT || '27017', 10),
-            database: process.env.DB_NAME || 'Ticket-System',
+            url: process.env.MONGO_URI, // เราจะใช้ URL ตัวเดียวจบ ไม่แยก host/port แล้ว
+          
+           
             entities: [Event, User, Booking, Artist],
-            synchronize: true,         // เปิดก่อนเพื่อ debug
-            
-        }),
+            synchronize: true, // ตัวนี้จะช่วยสร้าง Table/Collection ให้เองอัตโนมัติ
+          }),
         EventsModule,
         AuthModule,
         BookingsModule,
