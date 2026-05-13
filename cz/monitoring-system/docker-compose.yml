@@ -1,0 +1,184 @@
+services:
+  mongo:
+    image: mongo:6
+    container_name: mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb-data:/data/db
+    networks:
+      - monitoring-network
+    restart: always
+    command: mongod --wiredTigerCacheSizeGB 0.25
+
+  mongodb-exporter:
+    image: percona/mongodb_exporter:0.40
+    container_name: mongodb-exporter
+    environment:
+      - MONGODB_URI=mongodb://mongo:27017
+    ports:
+      - "9216:9216"
+    depends_on:
+      - mongo
+    restart: always
+    networks:
+      - monitoring-network
+
+  loki:
+    image: grafana/loki:3.0.0
+    container_name: loki
+    command: ["-config.file=/etc/loki/config.yml"]
+    volumes:
+      - loki-data:/loki
+      - ./loki-config.yml:/etc/loki/config.yml:ro
+    ports:
+      - "3100:3100"
+    restart: always
+    networks:
+      - monitoring-network
+
+  promtail:
+    image: grafana/promtail:2.9.8
+    container_name: promtail
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./promtail-config.yml:/etc/promtail/config.yml:ro
+    command: -config.file=/etc/promtail/config.yml
+    depends_on:
+      - loki
+    restart: always
+    networks:
+      - monitoring-network
+
+  backend:
+    build: ../ticket-mongodb
+    container_name: backend
+    ports:
+      - "3000:3000"
+    env_file:
+      - ../ticket-mongodb/.env
+    depends_on:
+      - mongo
+    networks:
+      - monitoring-network
+    restart: always
+
+  alertmanager:
+    image: prom/alertmanager:latest
+    container_name: alertmanager
+    env_file:
+      - .env
+    entrypoint: ['/bin/sh', '/etc/alertmanager/entrypoint.sh']
+    volumes:
+      - ./alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      - ./alertmanager/entrypoint.sh:/etc/alertmanager/entrypoint.sh:ro
+    ports:
+      - "9093:9093"
+    restart: always
+    networks:
+      - monitoring-network
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./prometheus/alerts:/etc/prometheus/alerts
+      - ./prometheus/targets:/etc/prometheus/targets
+    ports:
+      - "9090:9090"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      - alertmanager
+      - backend
+      - blackbox_exporter
+    restart: always
+    networks:
+      - monitoring-network
+
+  grafana:
+    # ใช้ 12.0.x เพื่อให้ตรงกับ grafana.db ใน volume หลังเคยใช้ `latest` (v12)
+    # แยกไฟล์ datasource (prometheus.yaml / loki.yaml) ช่วยลด provisioning error บน 12.1+
+    image: grafana/grafana:12.0.4
+    container_name: grafana
+    ports:
+      - "3001:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_PLUGINS_PREINSTALL_SYNC=false
+    volumes:
+      - grafana-storage:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning
+      - ./grafana/dashboards:/var/lib/grafana/dashboards
+    depends_on:
+      - prometheus
+      - loki
+      - alertmanager
+    restart: always
+    networks:
+      - monitoring-network
+
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: node-exporter
+    ports:
+      - "9100:9100"
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.sysfs=/host/sys'
+      - '--path.rootfs=/rootfs'
+    restart: always
+    networks:
+      - monitoring-network
+
+  frontend:
+    build: ../../tic/tic
+    container_name: frontend
+    ports:
+      - "5173:3000"
+    depends_on:
+      - backend
+    networks:
+      - monitoring-network
+    restart: always
+
+  blackbox_exporter:
+    image: prom/blackbox-exporter
+    container_name: blackbox_exporter
+    ports:
+      - "9115:9115"
+    volumes:
+      - ./blackbox.yml:/etc/blackbox_exporter/config.yml
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: always
+    networks:
+      - monitoring-network
+
+  alloy:
+    image: grafana/alloy:latest
+    container_name: alloy
+    ports:
+      - "12347:12347"
+    volumes:
+      - ./config.alloy:/etc/alloy/config.alloy
+    command: run /etc/alloy/config.alloy
+    depends_on:
+      - loki
+    restart: always
+    networks:
+      - monitoring-network
+
+networks:
+  monitoring-network:
+    driver: bridge
+
+volumes:
+  grafana-storage:
+  mongodb-data:
+  loki-data:

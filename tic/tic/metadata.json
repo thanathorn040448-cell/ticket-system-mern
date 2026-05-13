@@ -1,0 +1,7 @@
+{
+  "name": "ThaiTicket Hub",
+  "description": "A comprehensive concert and event ticketing platform with seat selection, secure checkout, and digital tickets.",
+  "requestFramePermissions": [
+    "geolocation"
+  ]
+}

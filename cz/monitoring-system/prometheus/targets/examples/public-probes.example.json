@@ -1,0 +1,26 @@
+[
+  {
+    "targets": ["https://api.example.com/health"],
+    "labels": {
+      "probe_scope": "public_internet",
+      "service": "backend",
+      "route": "/health"
+    }
+  },
+  {
+    "targets": ["https://api.example.com/events"],
+    "labels": {
+      "probe_scope": "public_internet",
+      "service": "backend",
+      "route": "/events"
+    }
+  },
+  {
+    "targets": ["https://api.example.com/artists"],
+    "labels": {
+      "probe_scope": "public_internet",
+      "service": "backend",
+      "route": "/artists"
+    }
+  }
+]

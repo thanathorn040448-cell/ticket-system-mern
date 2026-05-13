@@ -1,0 +1,131 @@
+groups:
+  - name: stack_availability
+    interval: 30s
+    rules:
+      - alert: BackendMetricsDown
+        expr: up{job="nestjs_app"} == 0
+        for: 1m
+        labels:
+          component: backend
+          severity: critical
+        annotations:
+          summary: Backend (NestJS) ไม่ตอบ /metrics
+          description: Prometheus scrape job nestjs_app ล้มเหลว — container อาจดับหรือพอร์ต 3000 ไม่พร้อม
+
+      - alert: MongoDBExporterDown
+        expr: up{job="mongodb"} == 0
+        for: 1m
+        labels:
+          component: database
+          severity: critical
+        annotations:
+          summary: MongoDB exporter ไม่ขึ้น
+          description: ไม่สามารถ scrape mongodb-exporter:9216 — ตรวจ container mongodb-exporter และ mongo
+
+      - alert: MongoDBUnreachable
+        expr: mongodb_up == 0
+        for: 2m
+        labels:
+          component: database
+          severity: critical
+        annotations:
+          summary: MongoDB ไม่ reachable จาก exporter
+          description: metric mongodb_up=0 — สายต่อ URI ของ exporter หรือ mongo ล่ม
+
+  # --- Blackbox API: แยกประเภท — HTTP ตอบแต่ status ผิด vs ต่อไม่ติด/DNS/TLS/timeout ---
+  - name: api_probes
+    interval: 15s
+    rules:
+      - alert: APIProbeBadHTTPStatus
+        expr: |
+          probe_success{job=~"api_probe.*"} == 0
+          and probe_http_status_code{job=~"api_probe.*"} > 0
+        for: 90s
+        labels:
+          component: api
+          severity: critical
+        annotations:
+          summary: "API ตอบ HTTP แต่ไม่ใช่ 200 OK [{{ $labels.probe_scope }}] {{ $labels.service }}{{ $labels.route }}"
+          description: |
+            Blackbox ได้รับ response แต่ status ไม่ผ่านเกณฑ์ (มักไม่ใช่ 200)
+            - มุมมอง: {{ $labels.probe_scope }} (internal_docker=ใน compose, via_host_port=ผ่านพอร์ตโฮสต์, public_internet=จากไฟล์ public-probes.json)
+            - service/route: {{ $labels.service }} {{ $labels.route }}
+            - URL ที่โพรบ: {{ $labels.instance }}
+            ดู status code จริงใน Grafana แดชบอร์ด "API observability" หรือ Prometheus: probe_http_status_code{instance="{{ $labels.instance }}"}
+            ถ้า internal OK แต่ public ล้ม → น่าสงสัย DNS/CDN/WAF/edge; ถ้า internal ล้ม → น่าสงสัยแอปหรือ DB
+
+      - alert: APIProbeConnectionFailure
+        expr: |
+          probe_success{job=~"api_probe.*"} == 0
+          and probe_http_status_code{job=~"api_probe.*"} == 0
+        for: 90s
+        labels:
+          component: api
+          severity: critical
+        annotations:
+          summary: "API ต่อไม่ติด / timeout / TLS / DNS [{{ $labels.probe_scope }}] {{ $labels.service }}{{ $labels.route }}"
+          description: |
+            Blackbox ไม่ได้รับ HTTP status ที่ใช้ได้ (มักเป็น connection refused, timeout, TLS handshake, DNS)
+            - มุมมอง: {{ $labels.probe_scope }}
+            - service/route: {{ $labels.service }} {{ $labels.route }}
+            - URL ที่โพรบ: {{ $labels.instance }}
+            ดูรายละเอียด phase ใน Grafana แดชบอร์ด "API observability" (probe_duration, SSL) หรือที่ Prometheus metric probe_failed_due_to_regex ถ้ามี
+
+      - alert: APIProbeInternalOkButHostFails
+        expr: |
+          (
+            max by (service, route) (probe_success{job="api_probe_internal", probe_scope="internal_docker"}) == 1
+          )
+          and on (service, route)
+          (
+            max by (service, route) (probe_success{job="api_probe_via_host", probe_scope="via_host_port"}) == 0
+          )
+        for: 3m
+        labels:
+          component: api
+          severity: warning
+        annotations:
+          summary: "สัญญาณ asymmetric: internal OK แต่ via_host ล้ม — {{ $labels.service }}{{ $labels.route }}"
+          description: |
+            จากใน Docker โพรบผ่านได้ แต่ผ่าน host.docker.internal+พอร์ต publish ไม่ได้
+            น่าสงสัยการ bind พอร์ตบน Windows/Docker Desktop, firewall โฮสต์, หรือพอร์ต mapping ผิด
+            ตรวจ docker compose ports และว่า service ฟังที่ 0.0.0.0 หรือไม่
+
+      - alert: APIProbeInternalOkButPublicFails
+        expr: |
+          (
+            max by (service, route) (probe_success{job="api_probe_internal", probe_scope="internal_docker"}) == 1
+          )
+          and on (service, route)
+          (
+            max by (service, route) (probe_success{job="api_probe_public"}) == 0
+          )
+        for: 3m
+        labels:
+          component: api
+          severity: critical
+        annotations:
+          summary: "ลูกค้าอาจเจอก่อน: internal OK แต่ public probe ล้ม — {{ $labels.service }}{{ $labels.route }}"
+          description: |
+            มีเป้าใน public-probes.json และจากใน Docker ยังเขียว แต่โพรบ public URL ล้ม
+            น่าสงสัย DNS, CDN, WAF, certificate, routing ภายนอก หรือ URL ใน public-probes.json ไม่ตรงกับที่ลูกค้าใช้
+            ตรวจไฟล์ prometheus/targets/public-probes.json และเทียบกับ URL จริง
+
+  - name: api_http_errors
+    interval: 30s
+    rules:
+      - alert: APIHTTPErrorSpike
+        expr: sum by (api_kind, method, status) (increase(http_api_errors_total[5m])) > 0
+        for: 1m
+        labels:
+          component: api
+          severity: warning
+        annotations:
+          summary: "API error — ประเภท {{ $labels.api_kind }} {{ $labels.method }} status={{ $labels.status }}"
+          description: |
+            มี HTTP error (>=400) จาก backend ในช่วง 5 นาที
+            - apiKind (กลุ่ม path): {{ $labels.api_kind }}
+            - method: {{ $labels.method }}
+            - status: {{ $labels.status }}
+            ดู body และข้อความ error ใน Loki (Explore → Loki):
+            {container=~"/?backend"} | json | apiKind="{{ $labels.api_kind }}" | status="{{ $labels.status }}"

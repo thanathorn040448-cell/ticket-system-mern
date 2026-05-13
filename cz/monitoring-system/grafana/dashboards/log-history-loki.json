@@ -1,0 +1,93 @@
+{
+  "uid": "log-history-loki",
+  "title": "Log history (Loki)",
+  "tags": ["loki", "logs", "history"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "30s",
+  "time": { "from": "now-7d", "to": "now" },
+  "timepicker": {
+    "refresh_intervals": ["5s", "10s", "30s", "1m", "5m"],
+    "time_options": ["5m", "15m", "1h", "6h", "12h", "24h", "2d", "7d", "30d", "90d"]
+  },
+  "templating": {
+    "list": [
+      {
+        "name": "container",
+        "type": "custom",
+        "label": "Container",
+        "query": "ทั้งหมด (backend+frontend) : .+, backend : /?backend, frontend : /?frontend",
+        "options": [
+          { "selected": true, "text": "ทั้งหมด (backend+frontend)", "value": ".+" },
+          { "selected": false, "text": "backend", "value": "/?backend" },
+          { "selected": false, "text": "frontend", "value": "/?frontend" }
+        ],
+        "current": { "selected": true, "text": "ทั้งหมด (backend+frontend)", "value": ".+" },
+        "hide": 0,
+        "skipUrlSync": false
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "title": "All streams (เลือกช่วงเวลาด้านบน — ดูย้อนหลังได้จริงจาก retention ของ Loki)",
+      "type": "logs",
+      "gridPos": { "h": 20, "w": 24, "x": 0, "y": 0 },
+      "datasource": { "type": "loki", "uid": "loki" },
+      "targets": [
+        {
+          "datasource": { "type": "loki", "uid": "loki" },
+          "editorMode": "code",
+          "expr": "{container=~\"$container\"}",
+          "queryType": "range",
+          "refId": "A",
+          "maxLines": 5000
+        }
+      ],
+      "options": {
+        "dedupStrategy": "none",
+        "enableInfiniteScrolling": true,
+        "enableLogDetails": true,
+        "prettifyLogLine": true,
+        "showCommonLabels": false,
+        "showLabels": true,
+        "showTime": true,
+        "sortOrder": "Descending",
+        "wrapLogMessage": true
+      },
+      "fieldConfig": { "defaults": {}, "overrides": [] }
+    },
+    {
+      "id": 2,
+      "title": "Backend — บรรทัดที่น่าจะเป็น API error (มี status / apiKind)",
+      "type": "logs",
+      "gridPos": { "h": 14, "w": 24, "x": 0, "y": 20 },
+      "datasource": { "type": "loki", "uid": "loki" },
+      "targets": [
+        {
+          "datasource": { "type": "loki", "uid": "loki" },
+          "editorMode": "code",
+          "expr": "{container=~\"/?backend\"} |~ \"statusCode|apiKind|http_api\"",
+          "queryType": "range",
+          "refId": "A",
+          "maxLines": 2000
+        }
+      ],
+      "options": {
+        "dedupStrategy": "none",
+        "enableInfiniteScrolling": true,
+        "enableLogDetails": true,
+        "prettifyLogLine": true,
+        "showCommonLabels": false,
+        "showLabels": true,
+        "showTime": true,
+        "sortOrder": "Descending",
+        "wrapLogMessage": true
+      },
+      "fieldConfig": { "defaults": {}, "overrides": [] }
+    }
+  ],
+  "annotations": { "list": [] }
+}

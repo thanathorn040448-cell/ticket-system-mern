@@ -1,0 +1,53 @@
+global:
+  resolve_timeout: 5m
+  slack_api_url: '__SLACK_WEBHOOK_URL__'
+
+# backend ล่ม = ต้นเหตุเดียวกับ probe ล้มหลายเส้น → แจ้งแค่ BackendMetricsDown ไม่ซ้ำ APIProbe*
+inhibit_rules:
+  - source_matchers:
+      - alertname = BackendMetricsDown
+    target_matchers:
+      - alertname =~ "APIProbe.*"
+
+route:
+  receiver: slack
+  # รวมเส้นโพรบที่ "มุมมองเดียวกัน" เป็นข้อความเดียว (อ่านเป็นรายการ) — แยกตามชนิด error / api_kind
+  group_by: ['alertname', 'component', 'probe_scope', 'api_kind', 'method', 'status']
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 4h
+
+receivers:
+  - name: default
+
+  - name: slack
+    slack_configs:
+      - channel: '#monitoring'
+        send_resolved: true
+        username: '{{ if eq .Status "resolved" }}Monitoring · ปกติแล้ว{{ else }}Monitoring · แจ้งเตือน{{ end }}'
+        icon_emoji: '{{ if eq .Status "resolved" }}:white_check_mark:{{ else }}:rotating_light:{{ end }}'
+        color: '{{ if eq .Status "resolved" }}good{{ else }}{{ if eq .CommonLabels.severity "critical" }}danger{{ else if eq .CommonLabels.severity "warning" }}warning{{ else }}#439FE0{{ end }}{{ end }}'
+        title: '{{ if eq .Status "resolved" }}กลับมาปกติ · {{ .CommonLabels.alertname }} ({{ len .Alerts }} รายการ){{ else }}มีปัญหา · {{ .CommonLabels.alertname }} ({{ len .Alerts }} รายการ){{ end }}'
+        title_link: '{{ if (index .Alerts 0).GeneratorURL }}{{ (index .Alerts 0).GeneratorURL }}{{ else }}__GRAFANA_ROOT_URL__/d/api-observability/api-observability{{ end }}'
+        text: |
+          {{ if eq .Status "resolved" }}*สรุป:* เงื่อนไข alert หายแล้ว — ระบบในกลุ่มนี้ถือว่า *กลับมาทำงานปกติ*{{ else }}*สรุป:* มีเหตุการณ์ที่ต้องตรวจ — ดูรายการด้านล่าง{{ end }}
+
+          *ข้อมูลกลุ่ม (อ้างอิงร่วมกัน)*
+          • *Alert:* `{{ .CommonLabels.alertname }}`
+          • *component:* `{{ .CommonLabels.component }}`{{ if .CommonLabels.severity }} · *severity:* `{{ .CommonLabels.severity }}`{{ end }}{{ if .CommonLabels.probe_scope }}
+          • *มุมมองโพรบ (probe_scope):* `{{ .CommonLabels.probe_scope }}`{{ end }}{{ if .CommonLabels.api_kind }}
+          • *API:* `{{ .CommonLabels.api_kind }}`{{ if .CommonLabels.method }} · method `{{ .CommonLabels.method }}`{{ end }}{{ if .CommonLabels.status }} · status `{{ .CommonLabels.status }}`{{ end }}{{ end }}
+
+          *รายการที่ได้รับผลกระทบ ({{ len .Alerts }} รายการ)*
+          {{ range .Alerts }}• *{{ .Annotations.summary }}*
+            {{- if or .Labels.service .Labels.route }} — `{{ .Labels.service }}{{ .Labels.route }}`{{ end }}
+            {{- if .Labels.instance }} · instance `{{ .Labels.instance }}`{{ end }}
+            {{- if .Labels.job }} · job `{{ .Labels.job }}`{{ end }}
+            {{- if .Annotations.description }}
+            _รายละเอียด:_ {{ .Annotations.description }}
+            {{- end }}
+            _เวลา:_ `{{ .StartsAt.UTC.Format "02 Jan 2006 15:04 MST" }}`{{ if gt .EndsAt.Unix 0 }} → `{{ .EndsAt.UTC.Format "02 Jan 2006 15:04 MST" }}`{{ end }}
+
+          {{ end }}
+          *ลิงก์เปิดดู*
+          <__GRAFANA_ROOT_URL__/d/api-observability/api-observability?from=now-6h&to=now|แดชบอร์ด API> · <__GRAFANA_ROOT_URL__/d/log-history-loki/log-history-loki?from=now-24h&to=now|Log ย้อนหลัง> · <__GRAFANA_ROOT_URL__/explore|Explore> · <__PROMETHEUS_URL__/alerts|Prometheus Alerts>

@@ -1,0 +1,22 @@
+modules:
+  # Probe เร็ว — เครือข่าย Docker / host ใกล้
+  http_2xx:
+    prober: http
+    timeout: 10s
+    http:
+      valid_status_codes: [200]
+      method: GET
+      follow_redirects: true
+      preferred_ip_protocol: ip4
+
+  # Public + โพรบผ่าน host.docker.internal (ใช้โมดูลเดียวกัน — timeout 15s; กับ URL http ธรรมดา tls_config ถูกละเว้น)
+  http_2xx_slow:
+    prober: http
+    timeout: 15s
+    http:
+      valid_status_codes: [200]
+      method: GET
+      follow_redirects: true
+      preferred_ip_protocol: ip4
+      tls_config:
+        insecure_skip_verify: false
