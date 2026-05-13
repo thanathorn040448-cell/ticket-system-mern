@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from "react"
+import { API_URL } from "../apiUrl"
 
 export const AdminEvents = () => {
 
-    const API = "http://localhost:3000/events"
+    const API = `${API_URL}/events`
 
     const [events, setEvents] = useState<any[]>([])
     const [eventname, setEventname] = useState("")

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Search, Bell, Globe } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { API_URL } from '../apiUrl';
 import logoImg from '../assets/LOGO.png';
 
 export const Header: React.FC = () => {
@@ -52,7 +53,7 @@ export const Header: React.FC = () => {
 
     const timer = setTimeout(() => {
 
-      fetch(`http://localhost:3000/events/search/${query}`)
+      fetch(`${API_URL}/events/search/${query}`)
         .then(res => res.json())
         .then(data => {
           if (Array.isArray(data)) {

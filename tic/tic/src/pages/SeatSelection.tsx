@@ -4,6 +4,7 @@ import { Calendar, MapPin, ChevronRight, Info, ShieldCheck } from 'lucide-react'
 import { useNavigate, useParams } from 'react-router-dom';
 import { cn } from '../lib/utils';
 import { useAuth } from "../context/AuthContext"
+import { API_URL } from "../apiUrl"
 
 export const SeatSelection: React.FC = () => {
 
@@ -28,7 +29,7 @@ export const SeatSelection: React.FC = () => {
   /* โหลด event จาก database */
 
   useEffect(() => {
-    fetch(`http://localhost:3000/events/${id}`)
+    fetch(`${API_URL}/events/${id}`)
       .then(res => res.json())
       .then(data => setEvent(data))
       .catch(err => console.error(err))

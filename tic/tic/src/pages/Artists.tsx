@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { API_URL } from "../apiUrl";
 
 interface Artist {
   _id: string
@@ -12,7 +13,7 @@ export const Artists = () => {
 
   useEffect(() => {
 
-    fetch("http://localhost:3000/artists")
+    fetch(`${API_URL}/artists`)
       .then(res => res.json())
       .then(data => {
 

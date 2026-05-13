@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext";
+import { API_URL } from "../apiUrl";
 
 interface Ticket {
   id: string
@@ -24,7 +25,7 @@ export const TicketHistory = () => {
 
     if (!user) return
 
-    fetch(`http://localhost:3000/bookings/user/${encodeURIComponent(user.email)}`)
+    fetch(`${API_URL}/bookings/user/${encodeURIComponent(user.email)}`)
       .then(res => res.json())
       .then(data => {
 

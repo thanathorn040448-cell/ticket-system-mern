@@ -2,6 +2,7 @@ import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { API_URL } from '../apiUrl';
 
 export const Login: React.FC = () => {
   const navigate = useNavigate();
@@ -95,7 +96,7 @@ export const Signup: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    const res = await fetch("http://localhost:3000/auth/register", {
+    const res = await fetch(`${API_URL}/auth/register`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json"

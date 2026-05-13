@@ -13,6 +13,7 @@ import {
 import { CATEGORIES } from '../constants';
 import { Link } from 'react-router-dom';
 import { cn } from '../lib/utils';
+import { API_URL } from '../apiUrl';
 
 const iconMap: Record<string, any> = {
   Globe,
@@ -29,7 +30,7 @@ export const Home: React.FC = () => {
   /* FETCH EVENTS FROM DATABASE */
 
   useEffect(() => {
-    fetch("http://localhost:3000/events")
+    fetch(`${API_URL}/events`)
       .then((res) => res.json())
       .then((data) => setEvents(data))
       .catch((err) => console.error(err))

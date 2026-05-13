@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { MapPin, Calendar } from 'lucide-react'
+import { API_URL } from '../apiUrl'
 
 interface EventType {
   _id: string
@@ -18,7 +19,7 @@ export const Concerts: React.FC = () => {
 
   useEffect(() => {
 
-    fetch("http://localhost:3000/events")
+    fetch(`${API_URL}/events`)
       .then(res => res.json())
       .then(data => setEvents(data))
       .catch(err => console.log(err))

@@ -4,6 +4,7 @@ import { CreditCard, QrCode, Wallet, ArrowLeft } from 'lucide-react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { cn } from '../lib/utils';
 import { useAuth } from "../context/AuthContext";
+import { API_URL } from "../apiUrl";
 
 export const Checkout: React.FC = () => {
 
@@ -48,7 +49,7 @@ export const Checkout: React.FC = () => {
 
       console.log("PAYMENT CLICKED");
 
-      const res = await fetch("http://localhost:3000/bookings", {
+      const res = await fetch(`${API_URL}/bookings`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json"

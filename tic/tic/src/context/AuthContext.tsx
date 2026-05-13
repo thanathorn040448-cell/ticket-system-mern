@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
+import { API_URL } from "../apiUrl";
 
 interface AuthContextType {
   user: any
@@ -27,7 +28,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     try {
 
-      const res = await fetch("http://localhost:3000/auth/login", {
+      const res = await fetch(`${API_URL}/auth/login`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json"

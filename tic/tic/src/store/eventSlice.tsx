@@ -1,5 +1,6 @@
 import { createSlice, createAsyncThunk, type PayloadAction } from "@reduxjs/toolkit"
 import axios from "axios"
+import { API_URL } from "../apiUrl"
 import { type RootState } from "./index"
 
 export interface EventType {
@@ -23,10 +24,10 @@ const initialState: EventState = {
   error: null
 }
 
-const API_URL = "http://localhost:3000/events"
+const EVENTS_URL = `${API_URL}/events`
 
 export const fetchEvents = createAsyncThunk("events/fetchEvents", async () => {
-  const response = await axios.get<EventType[]>(API_URL)
+  const response = await axios.get<EventType[]>(EVENTS_URL)
   return response.data
 })
 
