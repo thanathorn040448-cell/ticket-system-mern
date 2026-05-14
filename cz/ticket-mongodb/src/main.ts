@@ -1,27 +1,29 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
+import { Logger } from 'nestjs-pino';
 
 // ลบ import dotenv และ dotenv.config() ออก
 
-console.log('Environment variables:', {
-    DB_HOST: process.env.DB_HOST,
-    DB_PORT: process.env.DB_PORT,
-    DB_NAME: process.env.DB_NAME,
-});
+
 
 async function bootstrap() {
-    const app = await NestFactory.create(AppModule);
+    const app = await NestFactory.create(AppModule, {
+        bufferLogs: true,
+      });
+    app.useLogger(app.get(Logger));
+    const logger = app.get(Logger);
     app.enableCors({
         origin: true, // อนุญาตทุกแหล่งที่มา หรือจะใส่ ['https://your-frontend-url.onrender.com'] ก็ได้
         methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
         credentials: true,
     });
+    
     app.useGlobalPipes(new ValidationPipe());
     await app.listen(process.env.PORT ?? 3000, '0.0.0.0');
+
+    logger.log(`Backend started on port ${process.env.PORT ?? 3000}`);
 }
 
-console.log('**************************************************************');
-console.log('Starting Backend...AT PORT:', process.env.PORT ?? 3000);
-console.log('**************************************************************');
+
 void bootstrap();

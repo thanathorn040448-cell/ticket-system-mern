@@ -16,10 +16,35 @@ import {
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { HttpExceptionFilter } from './common/http-exception.filter';
+import { LoggerModule } from 'nestjs-pino';
 
 
 @Module({
     imports: [
+
+
+        LoggerModule.forRoot({
+            pinoHttp: {
+                level: process.env.LOG_LEVEL ?? 'info',
+                // บรรทัด access log ให้เหลือแค่ level / req / res / responseTime แบบ JSON (เหมาะกับ Loki)
+                base: undefined,
+                timestamp: false,
+                serializers: {
+                    req(serialized) {
+                        return {
+                            method: serialized.method,
+                            url: serialized.url,
+                        };
+                    },
+                    res(serialized) {
+                        return { statusCode: serialized.statusCode };
+                    },
+                },
+                customSuccessMessage: () => undefined as unknown as string,
+                customErrorMessage: () => undefined as unknown as string,
+            },
+        }),
+        
         PrometheusModule.register({
             path: '/metrics',
             defaultMetrics: {

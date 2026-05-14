@@ -60,7 +60,7 @@ scrape_configs:
         labels:
           probe_scope: public
           service: frontend
-          route: /
+          route: /health
     relabel_configs: &blackbox_relabel
       - source_labels: [__address__]
         target_label: __param_target

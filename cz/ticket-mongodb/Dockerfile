@@ -1,3 +1,5 @@
+# Deploy: build context = โฟลเดอร์ ticket-mongodb; compose เรียกจาก cz/monitoring-system
+# ค่า PORT / LOG_LEVEL / อื่นๆ ส่งผ่าน env ใน compose หรือ .env ตอนรัน container
 FROM node:20-alpine
 
 WORKDIR /app
