@@ -11,7 +11,7 @@ import store from "./store"
 import { AuthProvider } from "./context/AuthContext"
 
 initializeFaro({
-  url: 'http://localhost:12347/collect', // URL นี้คือตัวรับข้อมูลที่คุณต้องรันเพิ่ม
+  url: 'https://alternate-penguin-tested-ser.trycloudflare.com', // URL นี้คือตัวรับข้อมูลที่คุณต้องรันเพิ่ม
   app: {
     name: 'my-frontend-ts',
     version: '1.0.0',

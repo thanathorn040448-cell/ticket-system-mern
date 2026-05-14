@@ -24,7 +24,8 @@ scrape_configs:
     scrape_interval: 30s
     scrape_timeout: 25s
     static_configs:
-      - targets: ['backend:3000']
+      - targets: ['ticket-backend-final.onrender.com']
+    scheme: https
 
   - job_name: mongodb
     static_configs:
@@ -40,24 +41,24 @@ scrape_configs:
     params:
       module: [http_2xx]
     static_configs:
-      - targets: [http://backend:3000/health]
+      - targets: [https://ticket-backend-final.onrender.com/health]
         labels:
-          probe_scope: internal_docker
+          probe_scope: public
           service: backend
           route: /health
-      - targets: [http://backend:3000/events]
+      - targets: [https://ticket-backend-final.onrender.com/events]
         labels:
-          probe_scope: internal_docker
+          probe_scope: public
           service: backend
           route: /events
-      - targets: [http://backend:3000/artists]
+      - targets: [https://ticket-backend-final.onrender.com/artists]
         labels:
-          probe_scope: internal_docker
+          probe_scope: public
           service: backend
           route: /artists
-      - targets: [http://frontend:3000/]
+      - targets: [https://ticket-frontend-55hb.onrender.com/]
         labels:
-          probe_scope: internal_docker
+          probe_scope: public
           service: frontend
           route: /
     relabel_configs: &blackbox_relabel
@@ -71,27 +72,7 @@ scrape_configs:
   # API: ผ่าน host (พอร์ตที่ publish) — จับเคส asymmetric เทียบ internal (NAT / binding)
   # ไม่โพรบ frontend ที่ :5173 จากที่นี่ — Vite/dev มักไม่ตอบแบบที่ Blackbox คาดจากมุม host.docker.internal (ค้าง/ไม่ 200)
   # สถานะ frontend ใช้ job api_probe_internal (frontend:3000) + ใส่ URL จริงใน public-probes.json ถ้าต้องเทียบลูกค้า
-  - job_name: api_probe_via_host
-    metrics_path: /probe
-    params:
-      module: [http_2xx_slow]
-    static_configs:
-      - targets: [http://host.docker.internal:3000/health]
-        labels:
-          probe_scope: via_host_port
-          service: backend
-          route: /health
-      - targets: [http://host.docker.internal:3000/events]
-        labels:
-          probe_scope: via_host_port
-          service: backend
-          route: /events
-      - targets: [http://host.docker.internal:3000/artists]
-        labels:
-          probe_scope: via_host_port
-          service: backend
-          route: /artists
-    relabel_configs: *blackbox_relabel
+  
 
   # API: อินเทอร์เน็ต / โดเมนจริง — public-probes.json + services/*.json (ทีมละไฟล์)
   - job_name: api_probe_public

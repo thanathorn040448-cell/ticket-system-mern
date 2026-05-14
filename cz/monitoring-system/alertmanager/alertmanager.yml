@@ -2,7 +2,6 @@ global:
   resolve_timeout: 5m
   slack_api_url: '__SLACK_WEBHOOK_URL__'
 
-# backend ล่ม = ต้นเหตุเดียวกับ probe ล้มหลายเส้น → แจ้งแค่ BackendMetricsDown ไม่ซ้ำ APIProbe*
 inhibit_rules:
   - source_matchers:
       - alertname = BackendMetricsDown
@@ -11,7 +10,6 @@ inhibit_rules:
 
 route:
   receiver: slack
-  # รวมเส้นโพรบที่ "มุมมองเดียวกัน" เป็นข้อความเดียว (อ่านเป็นรายการ) — แยกตามชนิด error / api_kind
   group_by: ['alertname', 'component', 'probe_scope', 'api_kind', 'method', 'status']
   group_wait: 30s
   group_interval: 5m
@@ -28,7 +26,7 @@ receivers:
         icon_emoji: '{{ if eq .Status "resolved" }}:white_check_mark:{{ else }}:rotating_light:{{ end }}'
         color: '{{ if eq .Status "resolved" }}good{{ else }}{{ if eq .CommonLabels.severity "critical" }}danger{{ else if eq .CommonLabels.severity "warning" }}warning{{ else }}#439FE0{{ end }}{{ end }}'
         title: '{{ if eq .Status "resolved" }}กลับมาปกติ · {{ .CommonLabels.alertname }} ({{ len .Alerts }} รายการ){{ else }}มีปัญหา · {{ .CommonLabels.alertname }} ({{ len .Alerts }} รายการ){{ end }}'
-        title_link: '{{ if (index .Alerts 0).GeneratorURL }}{{ (index .Alerts 0).GeneratorURL }}{{ else }}__GRAFANA_ROOT_URL__/d/api-observability/api-observability{{ end }}'
+        title_link: '{{ if (index .Alerts 0).GeneratorURL }}{{ (index .Alerts 0).GeneratorURL }}{{ else }}https://publication-signatures-magical-edited.trycloudflare.com/d/api-observability/api-observability{{ end }}'
         text: |
           {{ if eq .Status "resolved" }}*สรุป:* เงื่อนไข alert หายแล้ว — ระบบในกลุ่มนี้ถือว่า *กลับมาทำงานปกติ*{{ else }}*สรุป:* มีเหตุการณ์ที่ต้องตรวจ — ดูรายการด้านล่าง{{ end }}
 
@@ -50,4 +48,4 @@ receivers:
 
           {{ end }}
           *ลิงก์เปิดดู*
-          <__GRAFANA_ROOT_URL__/d/api-observability/api-observability?from=now-6h&to=now|แดชบอร์ด API> · <__GRAFANA_ROOT_URL__/d/log-history-loki/log-history-loki?from=now-24h&to=now|Log ย้อนหลัง> · <__GRAFANA_ROOT_URL__/explore|Explore> · <__PROMETHEUS_URL__/alerts|Prometheus Alerts>
+          <https://publication-signatures-magical-edited.trycloudflare.com/d/api-observability/api-observability?from=now-6h&to=now|แดชบอร์ด API> · <https://publication-signatures-magical-edited.trycloudflare.com/d/log-history-loki/log-history-loki?from=now-24h&to=now|Log ย้อนหลัง> · <https://publication-signatures-magical-edited.trycloudflare.com/explore|Explore> · <http://localhost:9090/alerts|Prometheus Alerts>
